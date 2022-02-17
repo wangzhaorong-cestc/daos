@@ -104,17 +104,18 @@ class NvmeEnospace(ServerFillUp):
         ior_bg_cmd.test_file.update('/testfile_background')
 
         # Define the job manager for the IOR command
-        self.job_manager = Mpirun(ior_bg_cmd, mpitype="mpich")
+        self.job_manager1 = Mpirun(ior_bg_cmd, mpitype="mpich")
         self.create_cont()
-        self.job_manager.job.dfs_cont.update(self.container.uuid)
-        env = ior_bg_cmd.get_default_env(str(self.job_manager))
-        self.job_manager.assign_hosts(self.hostlist_clients, self.workdir, None)
-        self.job_manager.assign_processes(1)
-        self.job_manager.assign_environment(env, True)
+        self.job_manager1.job.dfs_cont.update(self.container.uuid)
+        env = ior_bg_cmd.get_default_env(str(self.job_manager1))
+        self.job_manager1.assign_hosts(self.hostlist_clients, self.workdir, None)
+        self.job_manager1.assign_processes(1)
+        self.job_manager1.assign_environment(env, True)
         print('----Run IOR in Background-------')
         # run IOR Write Command
         try:
-            self.job_manager.run()
+            self.job_manager1.run()
+            results.put("PASS")
         except (CommandFailure, TestFail) as _error:
             results.put("FAIL")
             return
@@ -123,7 +124,7 @@ class NvmeEnospace(ServerFillUp):
         ior_bg_cmd.flags.update(self.ior_read_flags)
         while True:
             try:
-                self.job_manager.run()
+                self.job_manager1.run()
             except (CommandFailure, TestFail) as _error:
                 results.put("FAIL")
                 break
@@ -282,7 +283,6 @@ class NvmeEnospace(ServerFillUp):
         #Run IOR to fill the pool.
         self.run_enospace_with_bg_job()
 
-    @skipForTicket("DAOS-7378")
     def test_enospace_time_with_fg(self):
         """Jira ID: DAOS-4756.
 

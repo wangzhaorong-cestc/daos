@@ -13,6 +13,7 @@
 // To use a test branch (i.e. PR) until it lands to master
 // I.e. for testing library changes
 //@Library(value="pipeline-lib@your_branch") _
+@Library(value="system-pipeline-lib@corci-1162b") _
 
 // For master, this is just some wildly high number
 next_version = "1000"
@@ -56,6 +57,8 @@ pipeline {
         TEST_RPMS = cachedCommitPragma(pragma: 'RPM-test', def_val: 'true')
         COVFN_DISABLED = cachedCommitPragma(pragma: 'Skip-fnbullseye', def_val: 'true')
         SCONS_FAULTS_ARGS = sconsFaultsArgs()
+        ARTIFACTORY_URL = 'https://artifactory.dc.hpdd.intel.com/'
+        REPOSITORY_URL = 'https://nexus-stage.dc.hpdd.intel.com/'
     }
 
     options {
@@ -189,12 +192,12 @@ pipeline {
                 }
             }
         }
-        stage('Cancel Previous Builds') {
+        /* stage('Cancel Previous Builds') {
             when { changeRequest() }
             steps {
                 cancelPreviousBuilds()
             }
-        }
+        } */
         stage('Pre-build') {
             when {
                 beforeAgent true

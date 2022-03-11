@@ -259,7 +259,10 @@ func TestAgent_mgmtModule_getAttachInfo(t *testing.T) {
 				provider: tc.provider,
 			}
 
-			resp, err := mod.getAttachInfo(context.Background(), tc.numaNode, sysName)
+			resp, err := mod.getAttachInfo(context.Background(), tc.numaNode,
+				&mgmtpb.GetAttachInfoReq{
+					Sys: sysName,
+				})
 
 			common.CmpErr(t, tc.expErr, err)
 			if diff := cmp.Diff(tc.expResp, resp, cmpopts.IgnoreUnexported(
@@ -383,7 +386,10 @@ func TestAgent_mgmtModule_getAttachInfo_cacheResp(t *testing.T) {
 			}
 
 			for _, expResp := range tc.expResps {
-				resp, err := mod.getAttachInfo(context.Background(), 0, sysName)
+				resp, err := mod.getAttachInfo(context.Background(), 0,
+					&mgmtpb.GetAttachInfoReq{
+						Sys: sysName,
+					})
 
 				common.CmpErr(t, nil, err)
 
@@ -445,7 +451,10 @@ func TestAgent_mgmtModule_getAttachInfo_Parallel(t *testing.T) {
 		go func(n int) {
 			defer wg.Done()
 
-			_, err := mod.getAttachInfo(context.Background(), 0, sysName)
+			_, err := mod.getAttachInfo(context.Background(), 0,
+				&mgmtpb.GetAttachInfoReq{
+					Sys: sysName,
+				})
 			if err != nil {
 				panic(errors.Wrapf(err, "thread %d", n))
 			}

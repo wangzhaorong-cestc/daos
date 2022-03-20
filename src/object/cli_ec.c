@@ -1748,9 +1748,11 @@ obj_ec_update_iod_size(struct obj_reasb_req *reasb_req, uint32_t iod_nr)
 	if (re_iods == NULL || u_iods == re_iods)
 		return;
 
-	for (i = 0; i < iod_nr; i++) {
-		D_ASSERT(re_iods[i].iod_type == u_iods[i].iod_type);
-		u_iods[i].iod_size = re_iods[i].iod_size;
+	if (reasb_req->orr_size_updated) {
+		for (i = 0; i < iod_nr; i++) {
+			D_ASSERT(re_iods[i].iod_type == u_iods[i].iod_type);
+			u_iods[i].iod_size = re_iods[i].iod_size;
+		}
 	}
 
 	/* Set back the size if it is recovery task */
@@ -2468,7 +2470,7 @@ obj_ec_recov_prep(struct obj_reasb_req *reasb_req, daos_obj_id_t oid,
 	/* when new target failed in recovery, the efi_stripe_lists and
 	 * efi_recov_tasks already initialized.
 	 */
-	if (fail_info->efi_stripe_lists == NULL) {
+	if (fail_info->efi_stripe_sgls == NULL) {
 		rc = obj_ec_stripe_list_init(reasb_req);
 		if (rc)
 			goto out;
@@ -2593,7 +2595,10 @@ again:
 			rec_nr += recov_recx.rx_idx - iod_recx.rx_idx;
 			break;
 		}
-		D_ASSERT(overlapped);
+
+		if (!overlapped)
+			continue;
+
 		iod_off = rec_nr * iod_size;
 
 		/* break the to-be-recovered recx per stripe, can copy

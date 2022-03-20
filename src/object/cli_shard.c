@@ -835,6 +835,8 @@ unlock:
 			rc = -DER_REC2BIG;
 		else if (fetch_again)
 			rc = -DER_FETCH_AGAIN;
+		if (reasb_req != NULL)
+			reasb_req->orr_size_updated = 1;
 	}
 
 	return rc;

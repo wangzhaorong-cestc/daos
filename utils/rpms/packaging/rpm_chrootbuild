@@ -3,11 +3,11 @@
 set -uex
 
 # shellcheck disable=SC2153
-IFS=\| read -r -a distro_base_local_repos <<< "$DISTRO_BASE_LOCAL_REPOS"
 repo_adds=()
 repo_dels=()
 
-if [ -n "${REPOSITORY_URL:-}" ] && [ -n "$DISTRO_REPOS" ]; then
+if { [ -n "${REPOSITORY_URL:-}" ] || [ -n "${ARTIFACTORY_URL:-}" ]; } \
+   && [ -n "$DISTRO_REPOS" ]; then
     repo_dels+=("--disablerepo=\*")
 fi
 
@@ -27,6 +27,7 @@ if [ "${CHROOT_NAME}" == "epel-8-x86_64" ]; then
 fi
 
 echo -e "config_opts['yum.conf'] += \"\"\"\n" >> "$cfg_file"
+curl -f "$REPO_FILE_URL/daos_ci-${DISTRO}-artifactory" >> "$cfg_file"
 for repo in $DISTRO_BASE_PR_REPOS $PR_REPOS; do
     branch="master"
     build_number="lastSuccessfulBuild"
@@ -45,7 +46,7 @@ baseurl=${JENKINS_URL:-https://build.hpdd.intel.com/}job/daos-stack/job/$repo/jo
 enabled=1\n\
 gpgcheck=False\n" >> "$cfg_file"
 done
-for repo in $JOB_REPOS "${distro_base_local_repos[@]}"; do
+for repo in $JOB_REPOS; do
     repo_name=${repo##*://}
     repo_name=${repo_name//\//_}
     repo_adds+=("--enablerepo $repo_name")
@@ -57,6 +58,6 @@ done
 echo "\"\"\"" >> "$cfg_file"
 
 # shellcheck disable=SC2086
-eval mock --configdir "$mock_config_dir" -r "${CHROOT_NAME}" \
-     ${repo_dels[*]} ${repo_adds[*]}                         \
+eval mock --configdir "$mock_config_dir" -r "${CHROOT_NAME}"    \
+     ${repo_dels[*]} ${repo_adds[*]} --enablerepo \*artifactory \
      $MOCK_OPTIONS $RPM_BUILD_OPTIONS "$TARGET"

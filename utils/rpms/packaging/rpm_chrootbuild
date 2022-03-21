@@ -10,7 +10,7 @@ if { [ -n "${REPOSITORY_URL:-}" ] || [ -n "${ARTIFACTORY_URL:-}" ]; } \
    && [ -n "$DISTRO_REPOS" ]; then
     repo_dels+=("--disablerepo=\*")
     # should this repo even be in the centos8 repo file?
-    if [ "$DISTRO" = "centos8"]; then
+    if [ "$DISTRO" = "centos8" ]; then
         repo_dels+=("--disablerepo=daos_ci-el-next-epel-*")
     fi
 fi

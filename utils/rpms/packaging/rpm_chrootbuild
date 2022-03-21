@@ -60,6 +60,8 @@ enabled=1\n" >> "$cfg_file"
 done
 echo "\"\"\"" >> "$cfg_file"
 
+cat "$cfg_file"
+
 # shellcheck disable=SC2086
 eval mock --configdir "$mock_config_dir" -r "${CHROOT_NAME}"    \
      ${repo_dels[*]} ${repo_adds[*]} --enablerepo \*-artifactory \

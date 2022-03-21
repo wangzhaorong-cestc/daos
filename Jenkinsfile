@@ -315,7 +315,8 @@ pipeline {
                             filename 'Dockerfile.mockbuild'
                             dir 'utils/rpms/packaging'
                             label 'docker_ce_runner'
-                            additionalBuildArgs dockerBuildArgs()
+                            additionalBuildArgs dockerBuildArgs() +
+                                                '--build-arg REPO_FILE_URL=' + env.REPO_FILE_URL
                             args  '--group-add mock --cap-add=SYS_ADMIN --privileged=true'
                         }
                     }
@@ -350,7 +351,8 @@ pipeline {
                             filename 'Dockerfile.mockbuild'
                             dir 'utils/rpms/packaging'
                             label 'docker_ce_runner'
-                            additionalBuildArgs dockerBuildArgs()
+                            additionalBuildArgs dockerBuildArgs() +
+                                                '--build-arg REPO_FILE_URL=' + env.REPO_FILE_URL
                             args  '--group-add mock --cap-add=SYS_ADMIN --privileged=true'
                         }
                     }
@@ -385,7 +387,8 @@ pipeline {
                             filename 'Dockerfile.mockbuild'
                             dir 'utils/rpms/packaging'
                             label 'docker_ce_runner'
-                            additionalBuildArgs dockerBuildArgs()
+                            additionalBuildArgs dockerBuildArgs() +
+                                                '--build-arg REPO_FILE_URL=' + env.REPO_FILE_URL
                             args  '--group-add mock --cap-add=SYS_ADMIN --privileged=true'
                         }
                     }
@@ -420,7 +423,8 @@ pipeline {
                             filename 'Dockerfile.ubuntu.20.04'
                             dir 'utils/rpms/packaging'
                             label 'docker_runner'
-                            additionalBuildArgs dockerBuildArgs()
+                            additionalBuildArgs dockerBuildArgs() +
+                                                '--build-arg REPO_FILE_URL=' + env.REPO_FILE_URL
                             args  '--cap-add=SYS_ADMIN --privileged=true'
                         }
                     }

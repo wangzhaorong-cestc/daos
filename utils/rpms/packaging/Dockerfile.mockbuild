@@ -9,8 +9,8 @@ FROM fedora:35
 LABEL maintainer="daos@daos.groups.io"
 
 # Use local repo server if present
-ARG REPO_DISTRO
-RUN if [ -n "$REPO_DISTRO" ]; then                                    \
+ARG REPO_FILE_URL
+RUN set -x; if [ -n "$REPO_FILE_URL" ]; then                                    \
         cd /etc/yum.repos.d/ &&                                       \
         rm -f *.repo &&                                               \
         curl -f -O "$REPO_FILE_URL"daos_ci-fedora-artifactory.repo && \

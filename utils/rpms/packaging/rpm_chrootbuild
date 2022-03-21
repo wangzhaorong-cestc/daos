@@ -31,9 +31,9 @@ fi
 
 echo -e "config_opts['yum.conf'] += \"\"\"\n" >> "$cfg_file"
 # need to fix gpg key paths
-if [[ $DISTRO = centos* ]; then
+if [[ $DISTRO = centos* ]]; then
     exp='\/etc\/pki\/rpm-gpg/\/usr\/share\/distribution-gpg-keys\/centos/g'
-elif [[ $DISTRO = leap* ]; then
+elif [[ $DISTRO = leap* ]]; then
     exp='/^gpgkey=/d'
 fi
 

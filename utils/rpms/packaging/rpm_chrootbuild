@@ -30,7 +30,16 @@ if [ "${CHROOT_NAME}" == "epel-8-x86_64" ]; then
 fi
 
 echo -e "config_opts['yum.conf'] += \"\"\"\n" >> "$cfg_file"
-curl -f "$REPO_FILE_URL"daos_ci-"$DISTRO"-artifactory.repo >> "$cfg_file"
+# need to fix gpg key paths
+if [[ $DISTRO = centos* ]; then
+    exp='\/etc\/pki\/rpm-gpg/\/usr\/share\/distribution-gpg-keys\/centos/g'
+elif [[ $DISTRO = leap* ]; then
+    exp='/^gpgkey=/d'
+fi
+
+curl -f "$REPO_FILE_URL"daos_ci-"$DISTRO"-artifactory.repo |
+  sed -e "$exp" >> "$cfg_file"
+
 for repo in $DISTRO_BASE_PR_REPOS $PR_REPOS; do
     branch="master"
     build_number="lastSuccessfulBuild"

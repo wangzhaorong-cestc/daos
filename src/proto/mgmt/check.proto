@@ -1,0 +1,202 @@
+//
+// (C) Copyright 2022 Intel Corporation.
+//
+// SPDX-License-Identifier: BSD-2-Clause-Patent
+//
+
+syntax = "proto3";
+package mgmt;
+
+option go_package = "github.com/daos-stack/daos/src/control/common/proto/mgmt";
+
+// Check Protobuf Definitions related to interactions between
+// DAOS control server and DAOS check via dRPC.
+
+// The pairs for kinds of inconsistency and related repair action. The control plane need to
+// generate such policy array from some configuration file either via command line option or
+// some default location, such as /etc/daos/daos_check.yml. Such policy arrge will be passed
+// to DAOS engine when start check and cannot changed during check scanning, but can be list
+// via 'dmg check prop' - see CheckPropResp.
+message CheckInconsistPolicy {
+	uint32 inconsist_cas = 1; // See CheckInconsistClass.
+	uint32 inconsist_act = 2; // See CheckInconsistAction.
+}
+
+// Check query result for the pool (all ranks) or pool shard (per target).
+message CheckQueryPool {
+	string uuid = 1; // Pool UUID.
+	string label = 2; // Pool label.
+	uint32 status = 3; // Pool status - see CheckPoolStatus.
+	uint32 phase = 4; // Scan phase - see CheckScanPhase.
+	uint32 inconsist_cnt = 5; // The count of total found inconsistency on the pool (shard).
+	uint32 repaired_cnt = 6; // The count of repaired inconsistency on the pool (shard).
+	uint32 ignored_cnt = 7; // The count of ignored inconsistency on the pool (shard).
+	uint32 failed_cnt = 8; // The count of fail to repaired inconsistency on the pool (shard).
+	uint64 start_time = 9; // The time of check instance being started on the pool (shard).
+	// If the check instance is still running on the pool (shard), then it is the estimated
+	// remaining time to complete the check on the pool (shard). Otherwise, it is the time
+	// of the check instance completed, failed or stopped on the pool (shard).
+	uint64 misc_time = 10;
+}
+
+// Check query result for the target that contains all the pool shards on this target.
+message CheckQueryTarget {
+	uint32 rank = 1; // Rank ID.
+	uint32 target = 2; // Target index in the rank.
+	uint32 status = 3; // Check instance status on this target - see CheckInstStatus.
+	repeated CheckQueryPool shards = 4; // Query results for pool shards on this target.
+}
+
+// For 'dmg check start'.
+message CheckStartReq {
+	string sys = 1; // DAOS system identifier.
+	uint32 flags = 2; // See CheckFlag.
+	// The list of ranks to start DAOS check. Cannot be empty.
+	//
+	// The control plane will generate the ranks list and guarantee that any rank in the system
+	// is either will participate in check or has been excluded. Otherwise, partial ranks check
+	// may cause some unexpected and unrecoverable result unless the specified pool(s) does not
+	// exist on those missed rank(s).
+	repeated uint32 ranks = 3;
+	// UUID for the pools for which to start DAOS check.
+	// If empty, then start DAOS check for all pools in the system.
+	repeated string uuids = 4;
+	repeated CheckInconsistPolicy policies = 5; // Policy array for handling inconsistency.
+}
+
+// CheckStartResp returns the result of check start.
+message CheckStartResp {
+	int32 status = 1; // DAOS error code.
+}
+
+// For 'dmg check stop'.
+message CheckStopReq {
+	string sys = 1; // DAOS system identifier.
+	// The list of ranks to stop DAOS check. If empty, then stop check on all ranks.
+	repeated uint32 ranks = 2;
+	// UUID for the pools for which to stop DAOS check.
+	// If empty, then stop check for all pools in the system.
+	repeated string uuids = 3;
+}
+
+// CheckStopResp returns the result of check stop.
+message CheckStopResp {
+	int32 status = 1; // DAOS error code.
+}
+
+// For 'dmg check query'.
+message CheckQueryReq {
+	string sys = 1; // DAOS system identifier.
+	// UUID for the pools for which to query DAOS check.
+	// If empty, then query DAOS check for all pools in the system.
+	repeated string uuids = 2;
+}
+
+// CheckQueryResp returns DAOS check status for required pool(s) or the whole system.
+//
+// Depend on the dmg command line option, the control plane needs to reorganize the query
+// results with summary (of pool shards from targets) and different detailed information.
+// For example:
+//
+// 'dmg check query -dd' output:
+//	Pool: xxx-xxx-xxx-xxx (label_x)
+//		Rank: 1
+//			Is_svc: Y/N
+//			Target: 0
+//				Status:		aaa
+//				Phase:		ppp
+//				Inconsist_cnt:	bbb
+//				Repaired_cnt:	ccc
+//				Ignored_cnt:	ddd
+//				Failed_cnt:	eee
+//				Start_time:	fff
+//				Remain_time:	ggg
+//			Target:	1
+//				Status:		hhh
+//				...
+//			...
+//		Rank: 2
+//			Is_svc: Y/N
+//			Target: 0
+//			...
+//		...
+//	Pool: kkk-kkk-kkk-kkk (label_k)
+//		...
+//	...
+//
+//
+// 'dmg check query -d' output:
+//	Pool: xxx-xxx-xxx-xxx (label_x)
+//		Rank: 1
+//			Is_svc: Y/N
+//			Status:		aaa
+//			Phase:		ppp
+//			Inconsist_cnt:	bbb
+//			Repaired_cnt:	ccc
+//			Ignored_cnt:	ddd
+//			Failed_cnt:	eee
+//			Start_time:	fff
+//			Remain_time:	ggg
+//		Rank: 2
+//			Is_svc: Y/N
+//			Status: hhh
+//			...
+//		...
+//	Pool:	kkk-kkk-kkk-kkk (label_k)
+//		...
+//	...
+//
+//
+// 'dmg check query' output:
+//	Pool: xxx-xxx-xxx-xxx (label_x)
+//		Ranks:		aaa,bbb,...
+//		Svcl:		ccc,ddd,...
+//		Status:		qqq
+//		Phase:		ppp
+//		inconsist_cnt:	eee
+//		repaired_cnt:	fff
+//		ignored_cnt:	ggg
+//		failed_cnt:	hhh
+//		start_time:	iii
+//		remain_time:	jjj
+//	Pool:	kkk-kkk-kkk-kkk (label_k)
+//		Ranks:		hhh
+//		...
+//	...
+//
+message CheckQueryResp {
+	int32 req_status = 1; // DAOS error code.
+	// The whole check instance status depends on the each engine status:
+	// As long as one target is in CIS_RUNNING, then the instance is CIS_RUNNING.
+	// Otherwise, in true with the status of CIS_FAILED, CIS_CRASHED, CIS_PAUSED,
+	// CIS_STOPPED, CIS_COMPLETED.
+	uint32 ins_status = 2;
+	repeated CheckQueryTarget targets = 3; // Per target based query result.
+}
+
+// For 'dmg check prop'
+message CheckPropReq {
+	string sys = 1; // DAOS system identifier.
+}
+
+// CheckPropResp returns the result of check prop and the properties when start check.
+message CheckPropResp {
+	int32 status = 1; // DAOS error code.
+	uint32 flags = 2; // The flags when start check - see CheckFlag.
+	repeated CheckInconsistPolicy policies = 3; // Inconsistency policy array.
+}
+
+// For the admin's decision from DAOS check interaction.
+message CheckActReq {
+	string sys = 1; // DAOS system identifier.
+	// DAOS RAS event sequence - see RASEvent::extended_info::check_info::chk_inconsist_seq.
+	uint64 seq = 2;
+	// The decision from RASEvent::extended_info::check_info::chk_opts.
+	uint32 act = 3;
+	bool for_all = 4; // The same action is applicable to the same type of inconsistency.
+}
+
+// CheckActResp returns the result of executing admin's decision.
+message CheckActResp {
+	int32 status = 1; // DAOS error code.
+}

@@ -9,10 +9,13 @@ repo_dels=()
 if { [ -n "${REPOSITORY_URL:-}" ] || [ -n "${ARTIFACTORY_URL:-}" ]; } \
    && [ -n "$DISTRO_REPOS" ]; then
     repo_dels+=("--disablerepo=\*")
+    # should this repo even be in the centos8 repo file?
+    if [ "$DISTRO" = "centos8"]; then
+        repo_dels+=("--disablerepo=daos_ci-el-next-epel-*")
+    fi
 fi
 
-: "${WORKSPACE:=$PWD}"
-mock_config_dir="$WORKSPACE/mock"
+mock_config_dir="${WORKSPACE:-$PWD}/mock"
 original_cfg_file="/etc/mock/${CHROOT_NAME}.cfg"
 cfg_file="$mock_config_dir/${CHROOT_NAME}.cfg"
 mkdir -p "$mock_config_dir"
@@ -59,5 +62,5 @@ echo "\"\"\"" >> "$cfg_file"
 
 # shellcheck disable=SC2086
 eval mock --configdir "$mock_config_dir" -r "${CHROOT_NAME}"    \
-     ${repo_dels[*]} ${repo_adds[*]} --enablerepo \*artifactory \
+     ${repo_dels[*]} ${repo_adds[*]} --enablerepo \*-artifactory \
      $MOCK_OPTIONS $RPM_BUILD_OPTIONS "$TARGET"

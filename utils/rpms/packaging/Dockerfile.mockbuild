@@ -10,11 +10,10 @@ LABEL maintainer="daos@daos.groups.io"
 
 # Use local repo server if present
 ARG REPO_FILE_URL
-RUN set -x; if [ -n "$REPO_FILE_URL" ]; then                                    \
-        cd /etc/yum.repos.d/ &&                                       \
-        rm -f *.repo &&                                               \
-        curl -f -O "$REPO_FILE_URL"daos_ci-fedora-artifactory.repo && \
-        dnf makecache;                                                \
+RUN if [ -n "$REPO_FILE_URL" ]; then                                \
+        cd /etc/yum.repos.d/ &&                                     \
+        rm -f *.repo &&                                             \
+        curl -f -O "$REPO_FILE_URL"daos_ci-fedora-artifactory.repo; \
     fi
 
 # use same UID as host and default value of 1000 if not specified
@@ -22,7 +21,7 @@ ARG UID=1000
 
 # Install basic tools
 RUN dnf -y install mock make \
-                   rpm-build curl createrepo rpmlint redhat-lsb-core git \
+                   rpm-build createrepo rpmlint redhat-lsb-core git \
                    python-srpm-macros rpmdevtools mock-core-configs\ \<\ 37.1
 
 # Add build user (to keep rpmbuild happy)

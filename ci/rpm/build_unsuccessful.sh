@@ -24,6 +24,7 @@ if [ -d /var/cache/pbuilder/ ]; then
     fi)
     exit 0
 fi
+ls -l /var/lib/mock/ || true
 
 mockroot="/var/lib/mock/${CHROOT_NAME}"
 cat "$mockroot"/result/{root,build}.log 2>/dev/null || true

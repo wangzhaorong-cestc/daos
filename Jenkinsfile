@@ -317,7 +317,7 @@ pipeline {
                             label 'docker_ce_runner'
                             additionalBuildArgs dockerBuildArgs() +
                                                 '--build-arg REPO_FILE_URL=' + env.REPO_FILE_URL
-                            args  '--group-add mock --cap-add=SYS_ADMIN --privileged=true'
+                            args  '--cap-add=SYS_ADMIN'
                         }
                     }
                     steps {
@@ -353,7 +353,7 @@ pipeline {
                             label 'docker_ce_runner'
                             additionalBuildArgs dockerBuildArgs() +
                                                 '--build-arg REPO_FILE_URL=' + env.REPO_FILE_URL
-                            args  '--group-add mock --cap-add=SYS_ADMIN --privileged=true'
+                            args  '--cap-add=SYS_ADMIN'
                         }
                     }
                     steps {
@@ -389,7 +389,7 @@ pipeline {
                             label 'docker_ce_runner'
                             additionalBuildArgs dockerBuildArgs() +
                                                 '--build-arg REPO_FILE_URL=' + env.REPO_FILE_URL
-                            args  '--group-add mock --cap-add=SYS_ADMIN --privileged=true'
+                            args  '--cap-add=SYS_ADMIN'
                         }
                     }
                     steps {
@@ -425,7 +425,7 @@ pipeline {
                             label 'docker_runner'
                             additionalBuildArgs dockerBuildArgs() +
                                                 '--build-arg REPO_FILE_URL=' + env.REPO_FILE_URL
-                            args  '--cap-add=SYS_ADMIN --privileged=true'
+                            args  '--cap-add=SYS_ADMIN'
                         }
                     }
                     steps {

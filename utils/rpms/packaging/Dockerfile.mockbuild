@@ -16,8 +16,7 @@ RUN if [ -n "$REPO_FILE_URL" ]; then                                \
         curl -f -O "$REPO_FILE_URL"daos_ci-fedora-artifactory.repo; \
     fi
 
-RUN useradd -u $UID -ms /bin/bash mockbuilder
-RUN echo "$USER:$PASSWD" | chpasswd
+RUN useradd mockbuilder
 # add the user to the mock group so it can run mock
 RUN usermod -a -G mock mockbuilder
 

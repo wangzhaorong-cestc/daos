@@ -2,19 +2,6 @@
 
 set -uex
 
-# shellcheck disable=SC2153
-repo_adds=()
-repo_dels=()
-
-if { [ -n "${REPOSITORY_URL:-}" ] || [ -n "${ARTIFACTORY_URL:-}" ]; } \
-   && [ -n "$DISTRO_REPOS" ]; then
-    repo_dels+=("--disablerepo=\*")
-    # should this repo even be in the centos8 repo file?
-    if [ "$DISTRO" = "centos8" ]; then
-        repo_dels+=("--disablerepo=daos_ci-el-next-epel-*")
-    fi
-fi
-
 mock_config_dir="${WORKSPACE:-$PWD}/mock"
 original_cfg_file="/etc/mock/${CHROOT_NAME}.cfg"
 cfg_file="$mock_config_dir/${CHROOT_NAME}.cfg"
@@ -29,16 +16,37 @@ if [ "${CHROOT_NAME}" == "epel-8-x86_64" ]; then
         >> "$cfg_file"
 fi
 
-echo -e "config_opts['yum.conf'] += \"\"\"\n" >> "$cfg_file"
-# need to fix gpg key paths
-if [[ $DISTRO = centos* ]]; then
-    exp='s/etc\/pki\/rpm-gpg/usr\/share\/distribution-gpg-keys\/centos/g'
-elif [[ $DISTRO = leap* ]]; then
-    exp='/^gpgkey=/d;/^repo_gpgcheck=1/d'
-fi
+# shellcheck disable=SC2153
+repo_adds=()
+repo_dels=()
 
-curl -f "$REPO_FILE_URL"daos_ci-"$DISTRO"-artifactory.repo |
-  sed -e "$exp" >> "$cfg_file"
+if { [ -n "${REPOSITORY_URL:-}" ] || [ -n "${ARTIFACTORY_URL:-}" ]; } \
+   && [ -n "$DISTRO_REPOS" ]; then
+    repo_dels+=("--disablerepo=\*")
+
+    if [ -n "${REPO_FILE_URL:-}" ]; then
+        echo -e "config_opts['yum.conf'] += \"\"\"\n" >> "$cfg_file"
+        if [ -n "$REPO_FILES_PR" ]; then
+            if [[ $REPO_FILES_PR = PR-* ]]; then
+                build_number="lastSuccessfulBuild"
+                branch="$REPO_FILES_PR"
+                if [[ $branch = *:* ]]; then
+                    build_number="${branch#*:}"
+                    branch="${branch%:*}"
+                fi
+                REPO_FILE_URL="${JENKINS_URL:-https://build.hpdd.intel.com/}job/daos-do/job/repo-files/job/$branch/$build_number/artifact/"
+            else
+                if [ ! -d "$REPO_FILES_PR" ]; then
+                    echo "Could not find your specified directory \"$REPO_FILES_PR\" to read repo-files from"
+                    exit 1
+                fi
+                REPO_FILE_URL="file://$(readlink -e "$REPO_FILES_PR")/"
+            fi
+        fi
+        curl -sSf "$REPO_FILE_URL"daos_ci-"$DISTRO"-artifactory.repo >> "$cfg_file"
+        repo_adds+=("--enablerepo *-artifactory")
+    fi
+fi
 
 for repo in $DISTRO_BASE_PR_REPOS $PR_REPOS; do
     branch="master"
@@ -72,6 +80,6 @@ echo "\"\"\"" >> "$cfg_file"
 cat "$cfg_file"
 
 # shellcheck disable=SC2086
-eval mock --configdir "$mock_config_dir" -r "${CHROOT_NAME}"    \
-     ${repo_dels[*]} ${repo_adds[*]} --enablerepo \*-artifactory \
+eval mock --configdir "$mock_config_dir" -r "${CHROOT_NAME}" \
+     ${repo_dels[*]} ${repo_adds[*]} --disablerepo=\*-debug* \
      $MOCK_OPTIONS $RPM_BUILD_OPTIONS "$TARGET"

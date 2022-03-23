@@ -10,7 +10,7 @@ SHELL=/bin/bash
 -include Makefile.local
 
 # default to Leap 15 distro for chrootbuild
-CHROOT_NAME ?= opensuse-leap-15.2-x86_64
+CHROOT_NAME ?= opensuse-leap-15.3-x86_64
 include packaging/Makefile_distro_vars.mk
 
 ifeq ($(DEB_NAME),)
@@ -19,7 +19,9 @@ endif
 
 CALLING_MAKEFILE := $(word 1, $(MAKEFILE_LIST))
 
-TOPDIR  ?= $(CURDIR)
+# this Makefile should always be executed from it's own dir
+TOPDIR := $(abspath $(dir $(firstword $(MAKEFILE_LIST)))/../..)
+
 BUILD_PREFIX ?= .
 
 DOT     := .
@@ -43,6 +45,7 @@ LEAP_15_PR_REPOS         ?= $(shell git show -s --format=%B | sed -ne 's/^PR-rep
 EL_7_PR_REPOS            ?= $(shell git show -s --format=%B | sed -ne 's/^PR-repos-el7: *\(.*\)/\1/p')
 EL_8_PR_REPOS            ?= $(shell git show -s --format=%B | sed -ne 's/^PR-repos-el8: *\(.*\)/\1/p')
 UBUNTU_20_04_PR_REPOS    ?= $(shell git show -s --format=%B | sed -ne 's/^PR-repos-ubuntu20: *\(.*\)/\1/p')
+REPO_FILES_PR            ?= $(shell git show -s --format=%B | sed -ne 's/^Repo-files-PR: *\(.*\)/\1/p')
 
 ifneq ($(PKG_GIT_COMMIT),)
 ifeq ($(GITHUB_PROJECT),)
@@ -357,10 +360,11 @@ chrootbuild: $(DEB_TOP)/$(DEB_DSC)
 	$(call distro_map)                                      \
 	DISTRO="$$distro"                                       \
 	PR_REPOS="$(PR_REPOS)"                                  \
+	REPO_FILES_PR="$(REPO_FILES_PR)"                        \
 	DISTRO_BASE_PR_REPOS="$($(DISTRO_BASE)_PR_REPOS)"       \
 	JENKINS_URL="$${JENKINS_URL}"                           \
 	JOB_REPOS="$(JOB_REPOS)"                                \
-    REPO_FILE_URL="$(REPO_FILE_URL)"                        \
+	REPO_FILE_URL="$(REPO_FILE_URL)"                        \
 	DISTRO_BASE_LOCAL_REPOS="$($(DISTRO_BASE)_LOCAL_REPOS)" \
 	VERSION_CODENAME="$(VERSION_CODENAME)"                  \
 	DEB_TOP="$(DEB_TOP)"                                    \
@@ -373,16 +377,36 @@ chrootbuild: $(SRPM) $(CALLING_MAKEFILE)
 	DISTRO="$$distro"                                       \
 	CHROOT_NAME="$(CHROOT_NAME)"                            \
 	PR_REPOS="$(PR_REPOS)"                                  \
+	REPO_FILES_PR="$(REPO_FILES_PR)"                        \
 	DISTRO_BASE_PR_REPOS="$($(DISTRO_BASE)_PR_REPOS)"       \
 	JENKINS_URL="$${JENKINS_URL}"                           \
 	JOB_REPOS="$(JOB_REPOS)"                                \
-    REPO_FILE_URL="$(REPO_FILE_URL)"                        \
+	REPO_FILE_URL="$(REPO_FILE_URL)"                        \
 	MOCK_OPTIONS="$(MOCK_OPTIONS)"                          \
 	RPM_BUILD_OPTIONS='$(RPM_BUILD_OPTIONS)'                \
 	DISTRO_REPOS='$(DISTRO_REPOS)'                          \
 	TARGET="$<"                                             \
 	packaging/rpm_chrootbuild
 endif
+
+podman_chrootbuild:
+	if ! podman build --build-arg UID=$$(id -u)                   \
+	                  --build-arg REPO_FILE_URL=$(REPO_FILE_URL)  \
+	                  -t chrootbuild                              \
+	                  -f packaging/Dockerfile.mockbuild .; then   \
+		echo "Container build failed";                            \
+	    exit 1;                                                   \
+	fi
+	rm -f /var/lib/mock/$(CHROOT_NAME)/result/{root,build}.log
+	if ! podman run --privileged=true -w $(TOPDIR) -v=$(TOPDIR)/..:$(TOPDIR)/..                              \
+	                -it chrootbuild bash -c "DISTRO_REPOS=false                                              \
+	                                         REPO_FILE_URL=$(REPO_FILE_URL)                                  \
+	                                         REPOSITORY_URL=$(REPOSITORY_URL)                                \
+	                                         make REPO_FILES_PR=$(REPO_FILES_PR)                             \
+											      CHROOT_NAME=$(CHROOT_NAME) -C $(CURDIR) chrootbuild"; then \
+	    cat /var/lib/mock/$(CHROOT_NAME)/result/{root,build}.log;                                            \
+	    exit 1;                                                                                              \
+	fi
 
 docker_chrootbuild:
 	$(DOCKER) build --build-arg UID=$$(id -u) -t chrootbuild \

@@ -8,6 +8,9 @@
 FROM fedora:35
 LABEL maintainer="daos@daos.groups.io"
 
+# use same UID as host and default value of 1000 if not specified
+ARG UID=1000
+
 # Use local repo server if present
 ARG REPO_FILE_URL
 RUN if [ -n "$REPO_FILE_URL" ]; then                                \

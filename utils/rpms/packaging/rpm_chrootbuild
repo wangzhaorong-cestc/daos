@@ -20,12 +20,13 @@ fi
 repo_adds=()
 repo_dels=()
 
+echo -e "config_opts['yum.conf'] += \"\"\"\n" >> "$cfg_file"
+
 if { [ -n "${REPOSITORY_URL:-}" ] || [ -n "${ARTIFACTORY_URL:-}" ]; } \
    && [ -n "$DISTRO_REPOS" ]; then
     repo_dels+=("--disablerepo=\*")
 
     if [ -n "${REPO_FILE_URL:-}" ]; then
-        echo -e "config_opts['yum.conf'] += \"\"\"\n" >> "$cfg_file"
         if [ -n "$REPO_FILES_PR" ]; then
             if [[ $REPO_FILES_PR = PR-* ]]; then
                 build_number="lastSuccessfulBuild"

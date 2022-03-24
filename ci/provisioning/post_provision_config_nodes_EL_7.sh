@@ -106,10 +106,6 @@ post_provision_config_nodes() {
         repo_servers=()
     fi
 
-    time dnf -y repolist
-
-    time dnf repolist
-
     if [ -n "$INST_REPOS" ]; then
         local repo
         for repo in $INST_REPOS; do

@@ -214,10 +214,5 @@ update_repos() {
         true > "$file"
     done
 
-    # see how things ended up
-    ls -l "${REPOS_DIR}"
-
     set_local_repo "${repo_servers[0]}"
-
-    time dnf -y repolist
 }
